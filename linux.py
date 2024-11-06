@@ -20,7 +20,7 @@ flag_file = "/var/log/installer_flag.txt"
 # Función que verifica si el script tiene permisos de administrador
 def check_admin():
     if os.geteuid() != 0:  # Verifica si el ID de usuario es root (0)
-        #print("Este script requiere privilegios de administrador. Por favor, ejecútelo con sudo.")
+        print("Este script requiere privilegios de administrador. Por favor, ejecútelo con sudo.")
         exit(1)
 
 # Simula la solicitud de contraseña de administrador (muestra un mensaje similar al de sudo)
